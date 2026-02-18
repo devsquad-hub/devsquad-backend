@@ -19,8 +19,8 @@ services:
       DB_NAME: ${DB_NAME:-templatedb}
       DB_USER: ${DB_USER:-template}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
-      SUPABASE_JWK_URI: ${SUPABASE_JWK_URI}
-      SUPABASE_ISSUER_URI: ${SUPABASE_ISSUER_URI}
+      SUPABASE_JWK_URI: ${SUPABASE_JWK_URI:http://localhost}
+      SUPABASE_ISSUER_URI: ${SUPABASE_ISSUER_URI:http://localhost}
       JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true"
     deploy:
       resources:
