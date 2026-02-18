@@ -12,7 +12,7 @@ public record ProjectResponse (
     String techStack,
     ProjectStatus status,
     String authorName,
-    Integer totalPositions,
+//    Integer totalPositions,
     Integer candidatesCount
 ){
 }

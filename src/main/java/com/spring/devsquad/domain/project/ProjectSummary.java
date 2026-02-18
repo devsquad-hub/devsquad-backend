@@ -12,6 +12,6 @@ public interface ProjectSummary {
     String getTechStack();
     ProjectStatus getStatus();
     UserProfile getUserAuthor();
-    int getTotalPositions();
+//    int getTotalPositions();
     int getCandidatesCount();
 }

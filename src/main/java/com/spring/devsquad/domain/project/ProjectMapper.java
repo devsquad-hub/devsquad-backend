@@ -13,7 +13,7 @@ public class ProjectMapper {
                 projectSummary.getTechStack(),
                 projectSummary.getStatus(),
                 projectSummary.getUserAuthor().getFirstName(),
-                projectSummary.getTotalPositions(),
+//                projectSummary.getTotalPositions(),
                 projectSummary.getCandidatesCount()
         );
     }
