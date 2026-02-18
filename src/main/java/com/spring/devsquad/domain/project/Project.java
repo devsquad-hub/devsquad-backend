@@ -26,6 +26,7 @@ public class Project extends AuditableEntity {
 
     private String difficulty;
 
+    @Enumerated(EnumType.STRING)
     private ProjectStatus status;
 
     @JoinColumn(name = "created_by")

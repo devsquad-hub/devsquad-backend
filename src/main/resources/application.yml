@@ -11,8 +11,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${SUPABASE_JWK_URI}
-          issuer-uri: ${SUPABASE_ISSUER_URI}
+          jwk-set-uri: ${SUPABASE_JWK_URI:http://localhost}
+          issuer-uri: ${SUPABASE_ISSUER_URI:http://localhost}
 
   # --- Encerramento Gracioso (Crítico para Docker) ---
   lifecycle:

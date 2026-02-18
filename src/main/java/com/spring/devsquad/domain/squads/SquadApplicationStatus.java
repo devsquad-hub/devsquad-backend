@@ -15,9 +15,9 @@ import java.util.UUID;
 @Getter @Setter
 public class SquadApplicationStatus {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_status")
-    private UUID id;
+    private Integer id;
 
     @NotNull
     private String code;
