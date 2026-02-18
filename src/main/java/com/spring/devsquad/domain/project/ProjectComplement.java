@@ -12,6 +12,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "pj_project_compl")
 public class ProjectComplement {
     @Id
     @Column(name = "id_project")
