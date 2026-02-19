@@ -4,7 +4,7 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:templatedb}?sslmode=require
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:templatedb}?sslmode=${DB_SSL_MODE:require}
     username: ${DB_USER:template}
     password: ${DB_PASSWORD:changeme}
     hikari:
