@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
-//    TODO create JPQL query
         @Query(
         """
         SELECT p.id AS id,
@@ -33,7 +32,6 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 )
     Optional<ProjectSummary> findProjectSummaryById(@Param("projectId") UUID id);
 
-//    TODO create JPQL query
     @Query(
         """
         SELECT p.id AS id,
