@@ -1,6 +1,6 @@
 package com.spring.devsquad.controller;
 
-import com.spring.devsquad.shared.dto.ApiResponse;
+import com.spring.devsquad.shared.dto.StandardResponse;
 import com.spring.devsquad.shared.dto.PagedResponse;
 import com.spring.devsquad.dto.ProjectRequest;
 import com.spring.devsquad.dto.ProjectResponse;
@@ -23,24 +23,24 @@ public class ProjectController {
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<ApiResponse<ProjectResponse>> getProjectById(@PathVariable UUID id) {
+    public ResponseEntity<StandardResponse<ProjectResponse>> getProjectById(@PathVariable UUID id) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(projectService.getProjectById(id)));
+                .body(StandardResponse.success(projectService.getProjectById(id)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<ProjectResponse>>> getAllProjects(Pageable pageable) {
+    public ResponseEntity<StandardResponse<PagedResponse<ProjectResponse>>> getAllProjects(Pageable pageable) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(ApiResponse.success(projectService.getAll(pageable)));
+                .body(StandardResponse.success(projectService.getAll(pageable)));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ProjectResponse>> createProject(@Valid @RequestBody ProjectRequest projectRequest) {
+    public ResponseEntity<StandardResponse<ProjectResponse>> createProject(@Valid @RequestBody ProjectRequest projectRequest) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(projectService.create(projectRequest)));
+                .body(StandardResponse.success(projectService.create(projectRequest)));
     }
 }
 
