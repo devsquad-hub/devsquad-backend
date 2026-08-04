@@ -10,13 +10,11 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.LegacyMd5Plugin;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.CORSConfiguration;
-import software.amazon.awssdk.services.s3.model.CORSRule;
-import software.amazon.awssdk.services.s3.model.PutBucketCorsRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration(proxyBeanMethods = false)
@@ -30,6 +28,7 @@ public class S3Configuration {
             @Value("${app.storage.secret-key}") String secretKey) {
         return S3Client.builder().endpointOverride(endpoint).region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                .addPlugin(LegacyMd5Plugin.create())
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .serviceConfiguration(pathStyle()).build();
     }
@@ -49,8 +48,7 @@ public class S3Configuration {
     @ConditionalOnProperty(name = "app.storage.initialize-bucket", havingValue = "true", matchIfMissing = true)
     ApplicationRunner ensureStorageBucket(
             S3Client client,
-            @Value("${app.storage.bucket}") String bucket,
-            @Value("${app.security.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+            @Value("${app.storage.bucket}") String bucket) {
         return arguments -> {
             try {
                 client.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
@@ -58,16 +56,6 @@ public class S3Configuration {
                 if (exception.statusCode() != 404) throw exception;
                 client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
             }
-            var rule = CORSRule.builder()
-                    .allowedMethods("GET", "PUT")
-                    .allowedHeaders("*")
-                    .allowedOrigins(java.util.Arrays.stream(allowedOrigins.split(","))
-                            .map(String::trim).filter(value -> !value.isBlank()).toList())
-                    .exposeHeaders("ETag")
-                    .maxAgeSeconds(3_600)
-                    .build();
-            client.putBucketCors(PutBucketCorsRequest.builder().bucket(bucket)
-                    .corsConfiguration(CORSConfiguration.builder().corsRules(rule).build()).build());
         };
     }
 

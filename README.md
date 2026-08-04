@@ -23,6 +23,8 @@ docker compose up -d postgres minio
 ```
 
 O arquivo `.env` é ignorado pelo Git. Ajuste nele as chaves do Clerk e as credenciais locais antes de iniciar a API.
+O Compose também aplica `CORS_ALLOWED_ORIGINS` ao CORS global do MinIO; a aplicação fica responsável
+apenas por garantir que o bucket exista.
 
 ## Verificação
 
