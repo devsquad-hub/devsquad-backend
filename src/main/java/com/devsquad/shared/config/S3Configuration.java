@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -29,6 +30,7 @@ public class S3Configuration {
             @Value("${app.storage.secret-key}") String secretKey) {
         return S3Client.builder().endpointOverride(endpoint).region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .serviceConfiguration(pathStyle()).build();
     }
 
