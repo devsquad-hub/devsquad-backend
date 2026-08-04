@@ -31,6 +31,8 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.50.3"))
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:url-connection-client")
+    // Provides CRC64NVME and its native-image metadata without bundling binaries for other platforms.
+    runtimeOnly("software.amazon.awssdk.crt:aws-crt:0.48.2:linux-x86_64")
     implementation("com.svix:svix:1.99.1")
     compileOnly("org.osgi:org.osgi.annotation.bundle:2.0.0")
     testCompileOnly("org.osgi:org.osgi.annotation.bundle:2.0.0")
