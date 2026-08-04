@@ -295,7 +295,7 @@ public class JdbcRecruitmentStore implements RecruitmentStore {
                         values (:project, :account, 'MEMBER', :role)
                         on conflict (project_id, account_id) do update set status = 'ACTIVE',
                             functional_role = coalesce(excluded.functional_role, project_memberships.functional_role),
-                            role = 'MEMBER', updated_at = now()
+                            updated_at = now()
                         """).param("project", projectId).param("account", accountId)
                 .param("role", functionalRole).update();
     }

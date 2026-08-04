@@ -14,11 +14,15 @@ API do DevSquad para hubs, projetos, propostas, processos seletivos, tarefas, an
 ## Desenvolvimento
 
 ```bash
+cp .env.example .env
+set -a
+source .env
+set +a
 docker compose up -d postgres minio
 ./gradlew bootRun
 ```
 
-Copie `.env.example` para um arquivo local ignorado pelo Git e configure as credenciais necessárias.
+O arquivo `.env` é ignorado pelo Git. Ajuste nele as chaves do Clerk e as credenciais locais antes de iniciar a API.
 
 ## Verificação
 
