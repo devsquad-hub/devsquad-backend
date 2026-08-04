@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+      - run: ./gradlew test processAot --no-daemon
+
+  image:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        shell: bash
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/devsquad-api" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.native
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke:
+    if: github.event_name == 'push'
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start production dependencies and native API
+        shell: bash
+        run: |
+          docker network create devsquad-ci
+          docker run -d --name postgres --network devsquad-ci \
+            -e POSTGRES_DB=devsquad -e POSTGRES_USER=devsquad -e POSTGRES_PASSWORD=devsquad \
+            postgres:18.4-alpine
+          docker run -d --name minio --network devsquad-ci -p 9000:9000 \
+            -e MINIO_ROOT_USER=devsquad -e MINIO_ROOT_PASSWORD=devsquad-secret \
+            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
+          for attempt in {1..30}; do
+            docker exec postgres pg_isready -U devsquad && break
+            sleep 2
+          done
+          for attempt in {1..30}; do
+            curl -fsS http://127.0.0.1:9000/minio/health/live && break
+            sleep 2
+          done
+          docker run -d --name api --network devsquad-ci -p 8080:8080 \
+            -e DATABASE_URL=jdbc:postgresql://postgres:5432/devsquad \
+            -e DATABASE_USER=devsquad -e DATABASE_PASSWORD=devsquad \
+            -e SECURITY_ENABLED=false -e BOOTSTRAP_ENABLED=false \
+            -e S3_ENDPOINT=http://minio:9000 -e S3_PUBLIC_ENDPOINT=http://minio:9000 \
+            -e S3_ACCESS_KEY=devsquad -e S3_SECRET_KEY=devsquad-secret \
+            '${{ needs.image.outputs.image }}:${{ github.sha }}'
+          for attempt in {1..30}; do
+            curl -fsS http://127.0.0.1:8080/actuator/health/readiness && exit 0
+            sleep 2
+          done
+          docker logs api
+          exit 1
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: [image, smoke]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Install verified Coolify CLI
+        shell: bash
+        run: |
+          release=https://github.com/coollabsio/coolify-cli/releases/download/v1.6.2
+          archive=coolify-cli_1.6.2_linux_amd64.tar.gz
+          curl -fsSLO "$release/$archive"
+          echo '269b131ebeebc41bc8889d3f76fdf2704d0261f3d77414232d700b8255f67ea5  coolify-cli_1.6.2_linux_amd64.tar.gz' | sha256sum -c -
+          tar -xzf "$archive" coolify
+          sudo install -m 0755 coolify /usr/local/bin/coolify
+      - name: Deploy immutable image
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_RESOURCE_UUID: ${{ secrets.COOLIFY_RESOURCE_UUID }}
+        run: |
+          coolify context add ci "$COOLIFY_URL" "$COOLIFY_TOKEN" --force --default
+          coolify deploy uuid "$COOLIFY_RESOURCE_UUID" --docker-tag "${{ github.sha }}" --force

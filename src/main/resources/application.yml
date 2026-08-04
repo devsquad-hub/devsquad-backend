@@ -1,50 +1,58 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  Backend Reference Template — Base Configuration           ║
-# ╚══════════════════════════════════════════════════════════════╝
-
 spring:
   application:
-    name: spring-boot-boilerplate
-    
-  # --- Servidor de Recursos OAuth2 (Supabase) ---
+    name: devsquad-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/devsquad}
+    username: ${DATABASE_USER:devsquad}
+    password: ${DATABASE_PASSWORD:devsquad}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+  flyway:
+    enabled: true
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${SUPABASE_JWK_URI:http://localhost}
-          issuer-uri: ${SUPABASE_ISSUER_URI:http://localhost}
-
-  # --- Encerramento Gracioso (Crítico para Docker) ---
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
-
-  # --- Padrões JPA ---
-  jpa:
-    open-in-view: false
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
-
-  # --- Flyway ---
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
+          issuer-uri: ${CLERK_ISSUER_URI:https://example.clerk.accounts.dev}
 
 server:
-  port: 8080
   shutdown: graceful
-  servlet:
-    context-path: /
+  forward-headers-strategy: framework
 
-
-
-# --- Gerenciamento (Actuator) ---
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
   endpoints:
     web:
       exposure:
-        include: health
-  endpoint:
-    health:
-      show-details: never
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+
+app:
+  membership:
+    default-hub-slug: ${DEFAULT_HUB_SLUG:devsquad}
+  clerk:
+    webhook-secret: ${CLERK_WEBHOOK_SECRET:}
+  security:
+    enabled: ${SECURITY_ENABLED:true}
+    authorized-parties: ${CLERK_AUTHORIZED_PARTIES:http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  bootstrap:
+    enabled: ${BOOTSTRAP_ENABLED:false}
+    hub-name: ${BOOTSTRAP_HUB_NAME:}
+    hub-slug: ${BOOTSTRAP_HUB_SLUG:}
+    master-clerk-user-id: ${BOOTSTRAP_MASTER_CLERK_USER_ID:}
+  storage:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${S3_PUBLIC_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    bucket: ${S3_BUCKET:devsquad-attachments}
+    initialize-bucket: ${S3_INITIALIZE_BUCKET:true}
+    access-key: ${S3_ACCESS_KEY:devsquad}
+    secret-key: ${S3_SECRET_KEY:devsquad-secret}
+    max-file-size: ${S3_MAX_FILE_SIZE:10485760}
