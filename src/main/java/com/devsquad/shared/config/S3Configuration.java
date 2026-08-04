@@ -11,6 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.LegacyMd5Plugin;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -34,6 +35,7 @@ public class S3Configuration {
         .region(Region.of(region))
         .credentialsProvider(
             StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+        .httpClientBuilder(UrlConnectionHttpClient.builder())
         .addPlugin(LegacyMd5Plugin.create())
         .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
         .serviceConfiguration(pathStyle())
