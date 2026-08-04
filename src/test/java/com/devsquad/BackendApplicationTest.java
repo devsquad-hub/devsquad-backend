@@ -65,6 +65,7 @@ class BackendApplicationTest {
         .then()
         .statusCode(400)
         .contentType("application/problem+json")
+        .body("type", equalTo("https://devsquad.app/problems/invalid_request"))
         .body("code", equalTo("invalid_request"));
   }
 }

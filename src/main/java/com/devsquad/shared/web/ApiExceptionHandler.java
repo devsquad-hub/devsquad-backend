@@ -49,10 +49,9 @@ public class ApiExceptionHandler implements ExceptionMapper<Throwable> {
     return problem(status, code, exception.getMessage(), Map.of());
   }
 
-  static Response problem(
-      int status, String code, String detail, Map<String, ?> properties) {
+  static Response problem(int status, String code, String detail, Map<String, ?> properties) {
     Map<String, Object> body = new LinkedHashMap<>();
-    body.put("type", "https://devsquad.app/problems/" + code.replace('_', '-'));
+    body.put("type", "https://devsquad.app/problems/" + code);
     body.put("title", code);
     body.put("status", status);
     body.put("detail", detail);

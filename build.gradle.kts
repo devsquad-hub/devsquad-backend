@@ -33,6 +33,7 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("com.svix:svix:1.99.1")
     compileOnly("org.osgi:org.osgi.annotation.bundle:2.0.0")
+    testCompileOnly("org.osgi:org.osgi.annotation.bundle:2.0.0")
 
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.quarkus:quarkus-test-security")
