@@ -2,7 +2,7 @@ package com.devsquad.shared.web;
 
 import com.devsquad.shared.domain.DomainException;
 import com.devsquad.shared.persistence.JdbcClient.SqlException;
-import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
@@ -17,8 +17,10 @@ public class ApiExceptionHandler implements ExceptionMapper<Throwable> {
 
   @Override
   public Response toResponse(Throwable exception) {
+    if (exception instanceof WebApplicationException webException) {
+      return webException.getResponse();
+    }
     if (exception instanceof DomainException domain) return domain(domain);
-    if (exception instanceof ConstraintViolationException validation) return validation(validation);
     if (exception instanceof SqlException sql
         && sql.sqlState() != null
         && sql.sqlState().startsWith("23")) {
@@ -47,24 +49,7 @@ public class ApiExceptionHandler implements ExceptionMapper<Throwable> {
     return problem(status, code, exception.getMessage(), Map.of());
   }
 
-  private static Response validation(ConstraintViolationException exception) {
-    var errors =
-        exception.getConstraintViolations().stream()
-            .map(
-                violation ->
-                    Map.of(
-                        "field", lastSegment(violation.getPropertyPath().toString()),
-                        "message", violation.getMessage()))
-            .toList();
-    return problem(400, "invalid_request", "Request validation failed", Map.of("errors", errors));
-  }
-
-  private static String lastSegment(String path) {
-    var separator = path.lastIndexOf('.');
-    return separator < 0 ? path : path.substring(separator + 1);
-  }
-
-  private static Response problem(
+  static Response problem(
       int status, String code, String detail, Map<String, ?> properties) {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("type", "https://devsquad.app/problems/" + code.replace('_', '-'));

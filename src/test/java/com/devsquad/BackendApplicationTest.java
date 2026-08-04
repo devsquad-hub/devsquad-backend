@@ -49,4 +49,22 @@ class BackendApplicationTest {
         .statusCode(401)
         .body("code", equalTo("authentication_required"));
   }
+
+  @Test
+  void unknownRouteRemainsNotFound() {
+    given().when().get("/api/v1/does-not-exist").then().statusCode(404);
+  }
+
+  @Test
+  void invalidRequestUsesStableProblemContract() {
+    given()
+        .contentType("application/json")
+        .body("{}")
+        .when()
+        .post("/api/v1/attachments/upload-ticket")
+        .then()
+        .statusCode(400)
+        .contentType("application/problem+json")
+        .body("code", equalTo("invalid_request"));
+  }
 }
