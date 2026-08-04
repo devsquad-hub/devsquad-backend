@@ -9,15 +9,15 @@ import org.junit.jupiter.api.Test;
 
 class RecruitmentPositionTest {
 
-    @Test
-    void reservesOnlyAvailableCapacity() {
-        var position = new RecruitmentPosition(UUID.randomUUID(), "Backend", 1, 0);
+  @Test
+  void reservesOnlyAvailableCapacity() {
+    var position = new RecruitmentPosition(UUID.randomUUID(), "Backend", 1, 0);
 
-        position.reserve();
+    position.reserve();
 
-        assertThat(position.availableSlots()).isZero();
-        assertThatThrownBy(position::reserve)
-                .isInstanceOf(DomainException.class)
-                .hasMessageContaining("filled");
-    }
+    assertThat(position.availableSlots()).isZero();
+    assertThatThrownBy(position::reserve)
+        .isInstanceOf(DomainException.class)
+        .hasMessageContaining("filled");
+  }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface NotificationStore {
-    List<NotificationView> findByReceiver(UUID receiverId);
-    void markRead(UUID notificationId, UUID receiverId);
+  List<NotificationView> findByReceiver(UUID receiverId);
+
+  void markRead(UUID notificationId, UUID receiverId);
 }

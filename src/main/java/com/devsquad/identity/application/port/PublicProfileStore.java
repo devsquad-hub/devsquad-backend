@@ -5,5 +5,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PublicProfileStore {
-    Optional<PublicProfile> find(UUID accountId);
+  Optional<PublicProfile> find(UUID accountId);
 }

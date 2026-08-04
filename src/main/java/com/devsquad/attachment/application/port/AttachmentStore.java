@@ -6,21 +6,22 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AttachmentStore {
-    boolean parentBelongsToProject(UploadCommand command);
+  boolean parentBelongsToProject(UploadCommand command);
 
-    void create(UUID id, UUID actorId, String objectKey, UploadCommand command);
+  void create(UUID id, UUID actorId, String objectKey, UploadCommand command);
 
-    StoredAttachment pending(UUID attachmentId);
+  StoredAttachment pending(UUID attachmentId);
 
-    StoredAttachment ready(UUID attachmentId);
+  StoredAttachment ready(UUID attachmentId);
 
-    void markReady(UUID attachmentId);
+  void markReady(UUID attachmentId);
 
-    UUID projectForTask(UUID taskId);
+  UUID projectForTask(UUID taskId);
 
-    List<AttachmentView> findByTask(UUID taskId);
+  List<AttachmentView> findByTask(UUID taskId);
 
-    record StoredAttachment(UUID projectId, String objectKey, long sizeBytes) {}
-    record AttachmentView(UUID id, String originalName, String contentType, long sizeBytes,
-                          OffsetDateTime createdAt) {}
+  record StoredAttachment(UUID projectId, String objectKey, long sizeBytes) {}
+
+  record AttachmentView(
+      UUID id, String originalName, String contentType, long sizeBytes, OffsetDateTime createdAt) {}
 }

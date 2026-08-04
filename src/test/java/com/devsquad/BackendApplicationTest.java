@@ -1,61 +1,52 @@
 package com.devsquad;
 
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 
+import com.devsquad.shared.persistence.JdbcClient;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@Testcontainers
-@SpringBootTest(properties = {
-        "app.security.enabled=false",
-        "app.bootstrap.enabled=false",
-        "app.storage.initialize-bucket=false"
-})
-@AutoConfigureMockMvc
+@QuarkusTest
 class BackendApplicationTest {
 
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.4-alpine");
+  @Inject JdbcClient jdbc;
 
-    @Autowired
-    JdbcTemplate jdbc;
+  @Test
+  void startsAndAppliesCoreSchema() {
+    var tables =
+        jdbc.sql("select table_name from information_schema.tables where table_schema = 'public'")
+            .query(String.class)
+            .list();
 
-    @Autowired
-    MockMvc mvc;
+    assertThat(tables).contains("accounts", "hubs", "projects", "tasks", "notifications");
+  }
 
-    @Test
-    void startsAndAppliesCoreSchema() {
-        var tables = jdbc.queryForList(
-                "select table_name from information_schema.tables where table_schema = 'public'",
-                String.class);
+  @Test
+  void publicHubCatalogStartsEmpty() {
+    given().when().get("/api/v1/public/hubs").then().statusCode(200).body("items", empty());
+  }
 
-        assertThat(tables).contains("accounts", "hubs", "projects", "tasks", "notifications");
-    }
+  @Test
+  void compatibilityReadinessReflectsQuarkusHealth() {
+    given()
+        .when()
+        .get("/actuator/health/readiness")
+        .then()
+        .statusCode(200)
+        .body("status", equalTo("UP"));
+  }
 
-    @Test
-    void publicHubCatalogStartsEmpty() throws Exception {
-        mvc.perform(get("/api/v1/public/hubs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isArray())
-                .andExpect(jsonPath("$.items").isEmpty());
-    }
-
-    @Test
-    void privateEndpointWithoutJwtReturnsUnauthorizedEvenInLocalOpenMode() throws Exception {
-        mvc.perform(get("/api/v1/hubs"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("authentication_required"));
-    }
+  @Test
+  void privateEndpointWithoutIdentityReturnsUnauthorized() {
+    given()
+        .when()
+        .get("/api/v1/hubs")
+        .then()
+        .statusCode(401)
+        .body("code", equalTo("authentication_required"));
+  }
 }

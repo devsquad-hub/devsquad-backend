@@ -8,13 +8,13 @@ Browser
   -> Next.js App Router
      -> Server Components para leituras iniciais
      -> BFF /api/backend/v1/** para mutações autenticadas
-        -> Spring Boot /api/v1/**
+        -> Quarkus REST /api/v1/**
            -> application -> ports -> JDBC, Clerk e S3 adapters
 ```
 
 ## Limites
 
-- `domain` não conhece Spring, HTTP, banco, Clerk ou S3.
+- `domain` não conhece Quarkus, HTTP, banco, Clerk ou S3.
 - `application` não importa adapters, JDBC, AWS SDK ou Jackson. ArchUnit verifica esta regra.
 - Controllers traduzem HTTP; casos de uso autorizam e orquestram; adapters implementam persistência e integrações.
 - Portas são coesas por responsabilidade. Não existe uma interface artificial para cada método.
@@ -49,4 +49,4 @@ protegida no servidor, mesmo quando um controle não está visível na interface
 - Constraints parciais impedem master, candidatura pendente e convite pendente duplicados.
 
 Erros HTTP usam `application/problem+json` com `code` estável. A especificação navegável fica em
-`/swagger-ui.html` no ambiente local.
+`/q/swagger-ui` no ambiente local.

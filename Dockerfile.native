@@ -1,21 +1,19 @@
-FROM ghcr.io/graalvm/native-image-community:25 AS build
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25 AS build
 WORKDIR /workspace
+USER root
+RUN microdnf install findutils -y
 COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
 COPY src src
-RUN ./gradlew nativeCompile --no-daemon
+RUN chown -R quarkus:quarkus /workspace
+USER quarkus
+RUN ./gradlew build -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false --no-daemon
 
-FROM debian:12-slim AS runtime-libs
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends busybox-static zlib1g \
-    && rm -rf /var/lib/apt/lists/*
-
-FROM gcr.io/distroless/base-debian12:nonroot
-WORKDIR /app
-COPY --from=runtime-libs /bin/busybox /bin/sh
-COPY --from=runtime-libs /bin/busybox /usr/bin/wget
-COPY --from=runtime-libs /lib/x86_64-linux-gnu/libz.so.1* /lib/x86_64-linux-gnu/
-COPY --from=build --chown=nonroot:nonroot /workspace/build/native/nativeCompile/devsquad-backend /app/devsquad
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
+WORKDIR /work
+COPY --from=build --chown=1001:root /workspace/build/*-runner /work/application
+RUN chmod 775 /work/application
 EXPOSE 8080
 ENV LANG=C.UTF-8
-ENTRYPOINT ["/app/devsquad"]
+USER 1001
+ENTRYPOINT ["/work/application", "-Dquarkus.http.host=0.0.0.0"]

@@ -1,35 +1,36 @@
 package com.devsquad.notification.adapter.in.web;
 
 import static com.devsquad.shared.security.JwtSubject.subject;
+
 import com.devsquad.notification.application.NotificationService;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/api/v1/notifications")
+@Path("/api/v1/notifications")
 public class NotificationController {
-    private final NotificationService service;
+  private final NotificationService service;
 
-    public NotificationController(NotificationService service) {
-        this.service = service;
-    }
+  public NotificationController(NotificationService service) {
+    this.service = service;
+  }
 
-    @GetMapping
-    public List<NotificationService.NotificationView> list(@AuthenticationPrincipal Jwt jwt) {
-        return service.list(subject(jwt));
-    }
+  @GET
+  public List<NotificationService.NotificationView> list(@Context SecurityContext securityContext) {
+    return service.list(subject(securityContext));
+  }
 
-    @PostMapping("/{notificationId}/read")
-    public ResponseEntity<Void> read(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID notificationId) {
-        service.markRead(subject(jwt), notificationId);
-        return ResponseEntity.noContent().build();
-    }
+  @POST
+  @Path("/{notificationId}/read")
+  public Response read(
+      @Context SecurityContext securityContext, @PathParam("notificationId") UUID notificationId) {
+    service.markRead(subject(securityContext), notificationId);
+    return Response.noContent().build();
+  }
 }

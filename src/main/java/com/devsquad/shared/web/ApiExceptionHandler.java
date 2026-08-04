@@ -1,59 +1,78 @@
 package com.devsquad.shared.web;
 
 import com.devsquad.shared.domain.DomainException;
-import java.net.URI;
+import com.devsquad.shared.persistence.JdbcClient.SqlException;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice
-public class ApiExceptionHandler {
+@Provider
+public class ApiExceptionHandler implements ExceptionMapper<Throwable> {
 
-    @ExceptionHandler(DomainException.class)
-    ProblemDetail domain(DomainException exception) {
-        var status = switch (exception.code()) {
-            case "authentication_required" -> HttpStatus.UNAUTHORIZED;
-            case "account_not_synchronized" -> HttpStatus.CONFLICT;
-            case "invalid_webhook_signature", "clerk_webhook_not_configured" -> HttpStatus.UNAUTHORIZED;
-            default -> {
-                if (exception.code().endsWith("_not_found")) yield HttpStatus.NOT_FOUND;
-                if (exception.code().endsWith("_forbidden") || exception.code().endsWith("_required")) yield HttpStatus.FORBIDDEN;
-                if (exception.code().contains("already_") || exception.code().contains("stale_")
-                        || exception.code().endsWith("_not_pending") || exception.code().equals("position_full")) {
-                    yield HttpStatus.CONFLICT;
-                }
-                yield HttpStatus.UNPROCESSABLE_CONTENT;
-            }
+  private static final MediaType PROBLEM_JSON = MediaType.valueOf("application/problem+json");
+
+  @Override
+  public Response toResponse(Throwable exception) {
+    if (exception instanceof DomainException domain) return domain(domain);
+    if (exception instanceof ConstraintViolationException validation) return validation(validation);
+    if (exception instanceof SqlException sql
+        && sql.sqlState() != null
+        && sql.sqlState().startsWith("23")) {
+      return problem(409, "data_conflict", "The operation conflicts with existing data", Map.of());
+    }
+    return problem(500, "internal_error", "An unexpected error occurred", Map.of());
+  }
+
+  private static Response domain(DomainException exception) {
+    var code = exception.code();
+    var status =
+        switch (code) {
+          case "authentication_required" -> 401;
+          case "account_not_synchronized" -> 409;
+          case "invalid_webhook_signature", "clerk_webhook_not_configured" -> 401;
+          default -> {
+            if (code.endsWith("_not_found")) yield 404;
+            if (code.endsWith("_forbidden") || code.endsWith("_required")) yield 403;
+            if (code.contains("already_")
+                || code.contains("stale_")
+                || code.endsWith("_not_pending")
+                || code.equals("position_full")) yield 409;
+            yield 422;
+          }
         };
-        var problem = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
-        problem.setType(URI.create("https://devsquad.app/problems/" + exception.code()));
-        problem.setTitle(exception.code());
-        problem.setProperty("code", exception.code());
-        return problem;
-    }
+    return problem(status, code, exception.getMessage(), Map.of());
+  }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    ProblemDetail validation(MethodArgumentNotValidException exception) {
-        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request validation failed");
-        problem.setType(URI.create("https://devsquad.app/problems/invalid-request"));
-        problem.setTitle("invalid_request");
-        problem.setProperty("code", "invalid_request");
-        problem.setProperty("errors", exception.getBindingResult().getFieldErrors().stream()
-                .map(error -> Map.entry(error.getField(), error.getDefaultMessage() == null ? "invalid" : error.getDefaultMessage()))
-                .toList());
-        return problem;
-    }
+  private static Response validation(ConstraintViolationException exception) {
+    var errors =
+        exception.getConstraintViolations().stream()
+            .map(
+                violation ->
+                    Map.of(
+                        "field", lastSegment(violation.getPropertyPath().toString()),
+                        "message", violation.getMessage()))
+            .toList();
+    return problem(400, "invalid_request", "Request validation failed", Map.of("errors", errors));
+  }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    ProblemDetail conflict(DataIntegrityViolationException exception) {
-        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "The operation conflicts with existing data");
-        problem.setType(URI.create("https://devsquad.app/problems/data-conflict"));
-        problem.setTitle("data_conflict");
-        problem.setProperty("code", "data_conflict");
-        return problem;
-    }
+  private static String lastSegment(String path) {
+    var separator = path.lastIndexOf('.');
+    return separator < 0 ? path : path.substring(separator + 1);
+  }
+
+  private static Response problem(
+      int status, String code, String detail, Map<String, ?> properties) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("type", "https://devsquad.app/problems/" + code.replace('_', '-'));
+    body.put("title", code);
+    body.put("status", status);
+    body.put("detail", detail);
+    body.put("code", code);
+    body.putAll(properties);
+    return Response.status(status).type(PROBLEM_JSON).entity(body).build();
+  }
 }

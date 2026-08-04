@@ -9,14 +9,15 @@ import org.junit.jupiter.api.Test;
 
 class ProjectApplicationTest {
 
-    @Test
-    void acceptedApplicationCannotReceiveAnotherDecision() {
-        var application = ProjectApplication.submitted(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
-        application.accept(UUID.randomUUID(), "Bem-vindo");
+  @Test
+  void acceptedApplicationCannotReceiveAnotherDecision() {
+    var application =
+        ProjectApplication.submitted(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    application.accept(UUID.randomUUID(), "Bem-vindo");
 
-        assertThat(application.status()).isEqualTo(ApplicationStatus.ACCEPTED);
-        assertThatThrownBy(() -> application.reject(UUID.randomUUID(), "Mudamos de ideia"))
-                .isInstanceOf(DomainException.class)
-                .hasMessageContaining("already decided");
-    }
+    assertThat(application.status()).isEqualTo(ApplicationStatus.ACCEPTED);
+    assertThatThrownBy(() -> application.reject(UUID.randomUUID(), "Mudamos de ideia"))
+        .isInstanceOf(DomainException.class)
+        .hasMessageContaining("already decided");
+  }
 }

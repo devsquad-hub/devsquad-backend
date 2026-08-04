@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface HubCatalog {
-    List<Hub> findAll();
-    Optional<Hub> findBySlug(String slug);
+  List<Hub> findAll();
+
+  Optional<Hub> findBySlug(String slug);
 }

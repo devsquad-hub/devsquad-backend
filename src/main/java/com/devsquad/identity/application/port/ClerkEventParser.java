@@ -4,5 +4,5 @@ import com.devsquad.identity.application.ClerkEvent;
 
 @FunctionalInterface
 public interface ClerkEventParser {
-    ClerkEvent parse(String payload);
+  ClerkEvent parse(String payload);
 }

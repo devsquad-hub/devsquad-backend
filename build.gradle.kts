@@ -1,8 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.1.0"
-    id("io.spring.dependency-management") version "1.1.7"
-    id("org.graalvm.buildtools.native") version "0.11.3"
+    id("io.quarkus") version "3.33.3"
 }
 
 group = "com.devsquad"
@@ -19,26 +17,27 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-jdbc")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.33.3"))
+    implementation("io.quarkus:quarkus-arc")
+    implementation("io.quarkus:quarkus-rest-jackson")
+    implementation("io.quarkus:quarkus-hibernate-validator")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-flyway")
+    implementation("io.quarkus:quarkus-narayana-jta")
+    implementation("io.quarkus:quarkus-oidc")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
     implementation(platform("software.amazon.awssdk:bom:2.50.3"))
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("com.svix:svix:1.99.1")
+    compileOnly("org.osgi:org.osgi.annotation.bundle:2.0.0")
 
-    runtimeOnly("org.postgresql:postgresql")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("io.quarkus:quarkus-junit")
+    testImplementation("io.quarkus:quarkus-test-security")
+    testImplementation("io.rest-assured:rest-assured")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")

@@ -7,33 +7,34 @@ import com.devsquad.identity.application.port.PersonalWorkspaceStore.Application
 import com.devsquad.identity.application.port.PersonalWorkspaceStore.InvitationSummary;
 import com.devsquad.project.application.port.ProjectStore.ProjectView;
 import com.devsquad.shared.web.PageResponse;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 
-@RestController
-@RequestMapping("/api/v1/me")
+@Path("/api/v1/me")
 public class PersonalWorkspaceController {
-    private final PersonalWorkspaceService service;
+  private final PersonalWorkspaceService service;
 
-    public PersonalWorkspaceController(PersonalWorkspaceService service) {
-        this.service = service;
-    }
+  public PersonalWorkspaceController(PersonalWorkspaceService service) {
+    this.service = service;
+  }
 
-    @GetMapping("/projects")
-    public PageResponse<ProjectView> projects(@AuthenticationPrincipal Jwt jwt) {
-        return PageResponse.singlePage(service.projects(subject(jwt)));
-    }
+  @GET
+  @Path("/projects")
+  public PageResponse<ProjectView> projects(@Context SecurityContext securityContext) {
+    return PageResponse.singlePage(service.projects(subject(securityContext)));
+  }
 
-    @GetMapping("/applications")
-    public PageResponse<ApplicationSummary> applications(@AuthenticationPrincipal Jwt jwt) {
-        return PageResponse.singlePage(service.applications(subject(jwt)));
-    }
+  @GET
+  @Path("/applications")
+  public PageResponse<ApplicationSummary> applications(@Context SecurityContext securityContext) {
+    return PageResponse.singlePage(service.applications(subject(securityContext)));
+  }
 
-    @GetMapping("/invitations")
-    public PageResponse<InvitationSummary> invitations(@AuthenticationPrincipal Jwt jwt) {
-        return PageResponse.singlePage(service.invitations(subject(jwt)));
-    }
+  @GET
+  @Path("/invitations")
+  public PageResponse<InvitationSummary> invitations(@Context SecurityContext securityContext) {
+    return PageResponse.singlePage(service.invitations(subject(securityContext)));
+  }
 }

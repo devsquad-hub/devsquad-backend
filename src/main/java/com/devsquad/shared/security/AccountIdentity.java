@@ -5,5 +5,5 @@ import java.util.UUID;
 
 @FunctionalInterface
 public interface AccountIdentity {
-    Optional<UUID> findActiveAccountId(String clerkUserId);
+  Optional<UUID> findActiveAccountId(String clerkUserId);
 }

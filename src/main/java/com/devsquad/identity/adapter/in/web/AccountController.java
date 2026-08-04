@@ -9,46 +9,45 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.List;
 import org.hibernate.validator.constraints.URL;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/api/v1/me")
+@Path("/api/v1/me")
 public class AccountController {
 
-    private final AccountService service;
+  private final AccountService service;
 
-    public AccountController(AccountService service) {
-        this.service = service;
-    }
+  public AccountController(AccountService service) {
+    this.service = service;
+  }
 
-    @GetMapping
-    public Account get(@AuthenticationPrincipal Jwt jwt) {
-        return service.current(subject(jwt));
-    }
+  @GET
+  public Account get(@Context SecurityContext securityContext) {
+    return service.current(subject(securityContext));
+  }
 
-    @PatchMapping
-    public Account update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest request) {
-        return service.update(subject(jwt), request.toProfile());
-    }
+  @PATCH
+  public Account update(
+      @Context SecurityContext securityContext, @Valid UpdateProfileRequest request) {
+    return service.update(subject(securityContext), request.toProfile());
+  }
 
-    public record UpdateProfileRequest(
-            @NotBlank @Size(max = 160) String displayName,
-            @Size(max = 4_000) String bio,
-            @Size(max = 30) List<@NotBlank @Size(max = 80) String> skills,
-            @URL String githubUrl,
-            @URL String linkedinUrl,
-            @URL String portfolioUrl,
-            @Max(168) Integer availabilityHours) {
-        AccountProfile toProfile() {
-            return AccountProfile.create(displayName, bio, skills, githubUrl, linkedinUrl, portfolioUrl, availabilityHours);
-        }
+  public record UpdateProfileRequest(
+      @NotBlank @Size(max = 160) String displayName,
+      @Size(max = 4_000) String bio,
+      @Size(max = 30) List<@NotBlank @Size(max = 80) String> skills,
+      @URL String githubUrl,
+      @URL String linkedinUrl,
+      @URL String portfolioUrl,
+      @Max(168) Integer availabilityHours) {
+    AccountProfile toProfile() {
+      return AccountProfile.create(
+          displayName, bio, skills, githubUrl, linkedinUrl, portfolioUrl, availabilityHours);
     }
+  }
 }

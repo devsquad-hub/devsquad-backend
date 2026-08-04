@@ -4,12 +4,12 @@ API do DevSquad para hubs, projetos, propostas, processos seletivos, tarefas, an
 
 ## Stack
 
-- Java 25 e Spring Boot 4.1
+- Java 25 e Quarkus 3.33 LTS
 - PostgreSQL 18 e Flyway
 - Clerk JWT e webhooks Svix
 - S3 compatível com MinIO
 - Arquitetura hexagonal por domínio
-- Imagem nativa GraalVM para produção
+- Imagem nativa Mandrel/GraalVM para produção
 
 ## Desenvolvimento
 
@@ -19,7 +19,7 @@ set -a
 source .env
 set +a
 docker compose up -d postgres minio
-./gradlew bootRun
+./gradlew quarkusDev
 ```
 
 O arquivo `.env` é ignorado pelo Git. Ajuste nele as chaves do Clerk e as credenciais locais antes de iniciar a API.
@@ -29,7 +29,7 @@ apenas por garantir que o bucket exista.
 ## Verificação
 
 ```bash
-./gradlew test processAot --no-daemon
+./gradlew test quarkusBuild --no-daemon
 ```
 
 A documentação arquitetural está em [`docs/architecture.md`](docs/architecture.md).
@@ -38,3 +38,6 @@ A documentação arquitetural está em [`docs/architecture.md`](docs/architectur
 
 Pushes em `main` executam testes, criam uma imagem nativa, realizam um smoke test com PostgreSQL e
 MinIO, publicam `ghcr.io/devsquad-hub/devsquad-api` e implantam no Coolify usando uma tag imutável.
+
+O endpoint de readiness usado pela infraestrutura é `/q/health/ready`. Durante a migração, o alias
+`/actuator/health/readiness` permanece disponível e delega ao mesmo estado real de saúde.

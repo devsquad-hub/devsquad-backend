@@ -8,24 +8,24 @@ import org.junit.jupiter.api.Test;
 
 class ProjectLifecycleTest {
 
-    @Test
-    void followsPlanningRecruitingActiveCompletedArchivedFlow() {
-        var lifecycle = new ProjectLifecycle(ProjectStatus.PLANNING);
+  @Test
+  void followsPlanningRecruitingActiveCompletedArchivedFlow() {
+    var lifecycle = new ProjectLifecycle(ProjectStatus.PLANNING);
 
-        lifecycle.transitionTo(ProjectStatus.RECRUITING);
-        lifecycle.transitionTo(ProjectStatus.ACTIVE);
-        lifecycle.transitionTo(ProjectStatus.COMPLETED);
-        lifecycle.transitionTo(ProjectStatus.ARCHIVED);
+    lifecycle.transitionTo(ProjectStatus.RECRUITING);
+    lifecycle.transitionTo(ProjectStatus.ACTIVE);
+    lifecycle.transitionTo(ProjectStatus.COMPLETED);
+    lifecycle.transitionTo(ProjectStatus.ARCHIVED);
 
-        assertThat(lifecycle.status()).isEqualTo(ProjectStatus.ARCHIVED);
-    }
+    assertThat(lifecycle.status()).isEqualTo(ProjectStatus.ARCHIVED);
+  }
 
-    @Test
-    void cannotReactivateCompletedProject() {
-        var lifecycle = new ProjectLifecycle(ProjectStatus.COMPLETED);
+  @Test
+  void cannotReactivateCompletedProject() {
+    var lifecycle = new ProjectLifecycle(ProjectStatus.COMPLETED);
 
-        assertThatThrownBy(() -> lifecycle.transitionTo(ProjectStatus.ACTIVE))
-                .isInstanceOf(DomainException.class)
-                .hasMessageContaining("COMPLETED");
-    }
+    assertThatThrownBy(() -> lifecycle.transitionTo(ProjectStatus.ACTIVE))
+        .isInstanceOf(DomainException.class)
+        .hasMessageContaining("COMPLETED");
+  }
 }

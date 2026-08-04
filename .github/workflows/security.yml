@@ -17,5 +17,5 @@ jobs:
     container:
       image: semgrep/semgrep:1.168.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: semgrep --config p/security-audit --config p/owasp-top-ten --exclude 'src/test/**' --error --metrics=off --jobs 1 src

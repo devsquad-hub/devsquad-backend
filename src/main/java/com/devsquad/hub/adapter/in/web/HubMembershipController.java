@@ -7,45 +7,48 @@ import com.devsquad.hub.application.port.HubMembershipStore;
 import com.devsquad.hub.domain.HubRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/api/v1")
+@Path("/api/v1")
 public class HubMembershipController {
 
-    private final HubMembershipService service;
+  private final HubMembershipService service;
 
-    public HubMembershipController(HubMembershipService service) {
-        this.service = service;
-    }
+  public HubMembershipController(HubMembershipService service) {
+    this.service = service;
+  }
 
-    @GetMapping("/hubs")
-    public List<HubMembershipStore.MembershipView> mine(@AuthenticationPrincipal Jwt jwt) {
-        return service.mine(subject(jwt));
-    }
+  @GET
+  @Path("/hubs")
+  public List<HubMembershipStore.MembershipView> mine(@Context SecurityContext securityContext) {
+    return service.mine(subject(securityContext));
+  }
 
-    @GetMapping("/hubs/{hubId}/members")
-    public List<HubMembershipStore.MemberView> members(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID hubId) {
-        return service.members(subject(jwt), hubId);
-    }
+  @GET
+  @Path("/hubs/{hubId}/members")
+  public List<HubMembershipStore.MemberView> members(
+      @Context SecurityContext securityContext, @PathParam("hubId") UUID hubId) {
+    return service.members(subject(securityContext), hubId);
+  }
 
-    @PutMapping("/hubs/{hubId}/members/{accountId}")
-    public ResponseEntity<Void> assign(
-            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID hubId, @PathVariable UUID accountId,
-            @Valid @RequestBody AssignRoleRequest request) {
-        service.assign(subject(jwt), hubId, accountId, request.role());
-        return ResponseEntity.noContent().build();
-    }
+  @PUT
+  @Path("/hubs/{hubId}/members/{accountId}")
+  public Response assign(
+      @Context SecurityContext securityContext,
+      @PathParam("hubId") UUID hubId,
+      @PathParam("accountId") UUID accountId,
+      @Valid AssignRoleRequest request) {
+    service.assign(subject(securityContext), hubId, accountId, request.role());
+    return Response.noContent().build();
+  }
 
-    public record AssignRoleRequest(@NotNull HubRole role) {}
+  public record AssignRoleRequest(@NotNull HubRole role) {}
 }

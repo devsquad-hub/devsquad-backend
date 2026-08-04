@@ -6,5 +6,5 @@ import java.util.UUID;
 
 @FunctionalInterface
 public interface ProjectRoleReader {
-    Optional<ProjectRole> findActiveProjectRole(UUID projectId, UUID accountId);
+  Optional<ProjectRole> findActiveProjectRole(UUID projectId, UUID accountId);
 }

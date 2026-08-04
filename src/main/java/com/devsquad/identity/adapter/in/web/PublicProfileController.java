@@ -1,21 +1,22 @@
 package com.devsquad.identity.adapter.in.web;
 
 import com.devsquad.identity.application.PublicProfileService;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import java.util.UUID;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@RequestMapping("/api/v1/public/profiles")
+@Path("/api/v1/public/profiles")
 public class PublicProfileController {
-    private final PublicProfileService service;
+  private final PublicProfileService service;
 
-    public PublicProfileController(PublicProfileService service) { this.service = service; }
+  public PublicProfileController(PublicProfileService service) {
+    this.service = service;
+  }
 
-    @GetMapping("/{accountId}")
-    public PublicProfileService.PublicProfile profile(@PathVariable UUID accountId) {
-        return service.find(accountId);
-    }
+  @GET
+  @Path("/{accountId}")
+  public PublicProfileService.PublicProfile profile(@PathParam("accountId") UUID accountId) {
+    return service.find(accountId);
+  }
 }

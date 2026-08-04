@@ -6,11 +6,11 @@ import com.devsquad.identity.domain.AccountProfile;
 import java.util.Optional;
 
 public interface AccountStore {
-    Optional<Account> findByClerkUserId(String clerkUserId);
+  Optional<Account> findByClerkUserId(String clerkUserId);
 
-    Account updateProfile(String clerkUserId, AccountProfile profile);
+  Account updateProfile(String clerkUserId, AccountProfile profile);
 
-    void synchronize(ClerkUser user);
+  void synchronize(ClerkUser user);
 
-    void markDeleted(String clerkUserId);
+  void markDeleted(String clerkUserId);
 }
