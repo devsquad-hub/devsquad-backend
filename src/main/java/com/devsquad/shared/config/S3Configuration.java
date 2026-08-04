@@ -70,6 +70,9 @@ public class S3Configuration {
     }
 
     private static software.amazon.awssdk.services.s3.S3Configuration pathStyle() {
-        return software.amazon.awssdk.services.s3.S3Configuration.builder().pathStyleAccessEnabled(true).build();
+        return software.amazon.awssdk.services.s3.S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
+                .chunkedEncodingEnabled(false)
+                .build();
     }
 }
