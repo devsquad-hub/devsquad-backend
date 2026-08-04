@@ -27,7 +27,7 @@ jobs:
       - run: ./gradlew test processAot --no-daemon
 
   image:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     outputs:
@@ -55,7 +55,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   smoke:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: image
     runs-on: ubuntu-latest
     steps:
@@ -97,7 +97,7 @@ jobs:
           exit 1
 
   deploy:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: [image, smoke]
     runs-on: ubuntu-latest
     environment: production
