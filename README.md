@@ -32,6 +32,29 @@ apenas por garantir que o bucket exista.
 ./gradlew test quarkusBuild --no-daemon
 ```
 
+## Dados de demonstração
+
+O seed de demonstração fica fora do Flyway e nunca é executado no startup. Ele cria uma massa
+idempotente com hubs, membros, projetos, propostas, recrutamento, tarefas, comentários, notificações
+e anexos pendentes. O primeiro usuário master e o hub `devsquad` existentes são preservados.
+
+Com o PostgreSQL do Compose:
+
+```bash
+docker compose up -d postgres
+./scripts/seed-demo.sh
+```
+
+Para apontar explicitamente para outro banco, informe a URL completa:
+
+```bash
+SEED_PSQL_URL=postgresql://devsquad:senha@localhost:5432/devsquad ./scripts/seed-demo.sh
+```
+
+O script roda em uma transação e a segunda execução não insere novamente os dados. Revise a URL
+antes de usar em qualquer ambiente compartilhado; o comando é uma ação explícita e não faz parte do
+deploy normal.
+
 A documentação arquitetural está em [`docs/architecture.md`](docs/architecture.md).
 
 ## Produção
