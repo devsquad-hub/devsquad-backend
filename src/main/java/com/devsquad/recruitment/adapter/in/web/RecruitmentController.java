@@ -89,12 +89,6 @@ public class RecruitmentController {
     return Response.noContent().build();
   }
 
-  @GET
-  @Path("/public/projects/{projectId}/recruitment-positions")
-  public List<RecruitmentService.PositionView> positions(@PathParam("projectId") UUID projectId) {
-    return service.publicPositions(projectId);
-  }
-
   @POST
   @Path("/recruitment-positions/{positionId}/applications")
   public Response apply(

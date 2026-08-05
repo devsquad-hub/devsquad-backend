@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import com.devsquad.shared.persistence.JdbcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -28,6 +29,28 @@ class BackendApplicationTest {
   @Test
   void publicHubCatalogStartsEmpty() {
     given().when().get("/api/v1/public/hubs").then().statusCode(200).body("items", empty());
+  }
+
+  @Test
+  void publicProjectCatalogIsReachableWithoutAuthentication() {
+    given()
+        .pathParam("hubId", UUID.randomUUID())
+        .when()
+        .get("/api/v1/public/hubs/{hubId}/projects")
+        .then()
+        .statusCode(200)
+        .body("", empty());
+  }
+
+  @Test
+  void publicRecruitmentCatalogIsReachableWithoutAuthentication() {
+    given()
+        .pathParam("projectId", UUID.randomUUID())
+        .when()
+        .get("/api/v1/public/projects/{projectId}/recruitment-positions")
+        .then()
+        .statusCode(200)
+        .body("", empty());
   }
 
   @Test

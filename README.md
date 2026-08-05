@@ -48,12 +48,16 @@ docker compose up -d postgres
 Para apontar explicitamente para outro banco, informe a URL completa:
 
 ```bash
-SEED_PSQL_URL=postgresql://devsquad:senha@localhost:5432/devsquad ./scripts/seed-demo.sh
+SEED_CONFIRM=DEMO_SEED_V1 \
+SEED_PSQL_URL=postgresql://devsquad:senha@localhost:5432/devsquad \
+./scripts/seed-demo.sh
 ```
 
-O script roda em uma transação e a segunda execução não insere novamente os dados. Revise a URL
-antes de usar em qualquer ambiente compartilhado; o comando é uma ação explícita e não faz parte do
-deploy normal.
+O script exige `SEED_CONFIRM=DEMO_SEED_V1` para qualquer conexão explicitamente configurada, evitando
+que variáveis herdadas apontem silenciosamente para um banco compartilhado. Ele roda em uma transação,
+usa um lock transacional e aborta se o namespace determinístico já estiver ocupado; a segunda execução
+com o marcador presente não insere novamente os dados. Revise a URL antes de usar em qualquer ambiente
+compartilhado; o comando é uma ação explícita e não faz parte do deploy normal.
 
 A documentação arquitetural está em [`docs/architecture.md`](docs/architecture.md).
 

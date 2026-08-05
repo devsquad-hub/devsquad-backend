@@ -31,19 +31,6 @@ public class ProjectController {
   }
 
   @GET
-  @Path("/public/hubs/{hubId}/projects")
-  public List<PublicProjectView> publicProjects(@PathParam("hubId") UUID hubId) {
-    return service.publicProjects(hubId).stream().map(PublicProjectView::from).toList();
-  }
-
-  @GET
-  @Path("/public/hubs/{hubSlug}/projects/{projectSlug}")
-  public PublicProjectView publicProject(
-      @PathParam("hubSlug") String hubSlug, @PathParam("projectSlug") String projectSlug) {
-    return PublicProjectView.from(service.publicProject(hubSlug, projectSlug));
-  }
-
-  @GET
   @Path("/projects/{projectId}")
   public InternalProjectView project(
       @Context SecurityContext securityContext, @PathParam("projectId") UUID projectId) {

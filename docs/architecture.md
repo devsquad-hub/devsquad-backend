@@ -41,9 +41,11 @@ protegida no servidor, mesmo quando um controle não está visível na interface
 ## Seed de demonstração
 
 `scripts/seed-demo.sql` é uma massa de dados manual, separada das migrations do Flyway. O arquivo roda
-em uma única transação, descobre o hub padrão e o master existentes, usa um namespace determinístico
-para as entidades sintéticas e grava o marcador `DEMO_SEED_V1`. Por isso, uma segunda execução é um
-no-op e o seed nunca é aplicado automaticamente em produção ou durante o startup do Quarkus.
+em uma única transação, serializa execuções com um advisory lock, descobre o hub padrão e o master
+existentes, usa um namespace determinístico para as entidades sintéticas e grava o marcador
+`DEMO_SEED_V1`. Antes de escrever, ele aborta se algum ID reservado ou o slug `opensource-lab` já
+estiver ocupado. Por isso, uma segunda execução é um no-op e o seed nunca é aplicado automaticamente
+em produção ou durante o startup do Quarkus.
 
 ## Segurança e consistência
 

@@ -67,6 +67,10 @@ DECLARE
   ];
   v_task_ids uuid[];
 BEGIN
+  -- Serialize every invocation before checking the marker. Without this lock two
+  -- concurrent sessions could both pass the marker check and append children.
+  PERFORM pg_advisory_xact_lock(hashtextextended('devsquad.demo.seed.v1', 0));
+
   IF EXISTS (
     SELECT 1
     FROM activity_events
@@ -74,6 +78,57 @@ BEGIN
   ) THEN
     RAISE NOTICE 'demo_seed_v1: already_present';
     RETURN;
+  END IF;
+
+  -- Deterministic IDs make the dataset easy to inspect, but they must never be
+  -- used as an upsert key for an unrelated row. Abort before the first write if
+  -- this namespace, the lab slug, or the marker ID is already occupied.
+  IF EXISTS (
+    SELECT 1 FROM hubs
+    WHERE id IN (v_default_hub_fallback, v_lab_hub_fallback)
+  )
+  OR EXISTS (
+    SELECT 1 FROM hubs WHERE slug = 'opensource-lab'
+  )
+  OR EXISTS (
+    SELECT 1 FROM accounts
+    WHERE id::text LIKE '10000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM project_proposals
+    WHERE id::text LIKE '30000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM projects
+    WHERE id::text LIKE '40000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM recruitment_rounds
+    WHERE id::text LIKE '50000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM recruitment_positions
+    WHERE id::text LIKE '51000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM recruitment_form_versions
+    WHERE id::text LIKE '52000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM project_applications
+    WHERE id::text LIKE '53000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM project_invitations
+    WHERE id::text LIKE '54000000-0000-4000-8000-%'
+  )
+  OR EXISTS (
+    SELECT 1 FROM activity_events WHERE entity_id = v_marker
+  ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'check_violation',
+      MESSAGE = 'demo_seed_namespace_collision',
+      DETAIL = 'Reserved demo IDs or the opensource-lab slug already exist';
   END IF;
 
   SELECT id INTO v_default_hub_id FROM hubs WHERE slug = 'devsquad' LIMIT 1;
@@ -147,18 +202,7 @@ BEGIN
       'https://portfolio.demo.devsquad.local/' || lpad(v_i::text, 2, '0'),
       4 + (v_i % 13)
     )
-    ON CONFLICT (id) DO UPDATE SET
-      email = excluded.email,
-      display_name = excluded.display_name,
-      avatar_url = excluded.avatar_url,
-      bio = excluded.bio,
-      skills = excluded.skills,
-      github_url = excluded.github_url,
-      linkedin_url = excluded.linkedin_url,
-      portfolio_url = excluded.portfolio_url,
-      availability_hours = excluded.availability_hours,
-      status = 'ACTIVE',
-      updated_at = now();
+    ON CONFLICT (id) DO NOTHING;
   END LOOP;
 
   INSERT INTO hubs (id, name, slug, description)
@@ -168,9 +212,7 @@ BEGIN
     'opensource-lab',
     'Laboratorio de projetos open source e experimentos tecnicos.'
   )
-  ON CONFLICT (slug) DO UPDATE SET
-    description = coalesce(hubs.description, excluded.description),
-    updated_at = now();
+  ON CONFLICT (slug) DO NOTHING;
   SELECT id INTO v_lab_hub_id FROM hubs WHERE slug = 'opensource-lab' LIMIT 1;
 
   SELECT hm.account_id
@@ -368,17 +410,7 @@ BEGIN
       'ARCHIVED', null, null, ARRAY['experiments', 'archive'],
       current_date - 300, current_date - 120
     )
-  ON CONFLICT (id) DO UPDATE SET
-    name = excluded.name,
-    summary = excluded.summary,
-    description = excluded.description,
-    status = excluded.status,
-    repository_url = excluded.repository_url,
-    communication_url = excluded.communication_url,
-    tags = excluded.tags,
-    start_date = excluded.start_date,
-    target_date = excluded.target_date,
-    updated_at = now();
+  ON CONFLICT (id) DO NOTHING;
 
   UPDATE project_proposals
   SET project_id = '40000000-0000-4000-8000-000000000001'::uuid
@@ -462,9 +494,7 @@ BEGIN
       '50000000-0000-4000-8000-000000000005'::uuid, v_project_ids[4], 'Pesquisa encerrada',
       'Ciclo historico de pesquisa de dados.', 'CLOSED', now() - interval '220 days', now() - interval '160 days'
     )
-  ON CONFLICT (id) DO UPDATE SET
-    name = excluded.name, description = excluded.description, status = excluded.status,
-    opens_at = excluded.opens_at, closes_at = excluded.closes_at, updated_at = now();
+  ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO recruitment_positions (id, round_id, title, description, skills, capacity, filled, status)
   VALUES
@@ -484,16 +514,14 @@ BEGIN
      'QA and docs', 'Garanta uma experiencia simples para contributors.', ARRAY['Testing', 'Documentation', 'Open source'], 2, 1, 'OPEN'),
     ('51000000-0000-4000-8000-000000000008'::uuid, '50000000-0000-4000-8000-000000000005'::uuid,
      'Data researcher', 'Explore fontes publicas e documente metodos.', ARRAY['Python', 'Data', 'Research'], 2, 2, 'CLOSED')
-  ON CONFLICT (id) DO UPDATE SET
-    title = excluded.title, description = excluded.description, skills = excluded.skills,
-    capacity = excluded.capacity, filled = excluded.filled, status = excluded.status;
+  ON CONFLICT (id) DO NOTHING;
 
   FOR v_i IN 1..8 LOOP
     v_position_id := ('51000000-0000-4000-8000-' || lpad(v_i::text, 12, '0'))::uuid;
     v_form_id := ('52000000-0000-4000-8000-' || lpad(v_i::text, 12, '0'))::uuid;
     INSERT INTO recruitment_form_versions (id, position_id, version, published_at)
     VALUES (v_form_id, v_position_id, 1, now() - (v_i || ' days')::interval)
-    ON CONFLICT (id) DO UPDATE SET published_at = excluded.published_at;
+    ON CONFLICT (id) DO NOTHING;
     FOR v_j IN 1..4 LOOP
       INSERT INTO recruitment_questions (
         form_version_id, question_key, label, type, required, position, options
@@ -513,9 +541,7 @@ BEGIN
         CASE v_j WHEN 3 THEN '["Iniciante", "Intermediario", "Avancado"]'::jsonb
                  WHEN 4 THEN '["Sim", "Nao"]'::jsonb ELSE '[]'::jsonb END
       )
-      ON CONFLICT (form_version_id, question_key) DO UPDATE SET
-        label = excluded.label, type = excluded.type, required = excluded.required,
-        position = excluded.position, options = excluded.options;
+      ON CONFLICT (form_version_id, question_key) DO NOTHING;
     END LOOP;
   END LOOP;
 
@@ -572,9 +598,7 @@ BEGIN
       '{"motivation":"Quero contribuir com ferramentas de terminal.","portfolio":"https://portfolio.demo.devsquad.local/16","experience":"Avancado","availability":true}'::jsonb,
       'ACCEPTED', v_lab_master_id, 'Experiencia forte em CLI e vontade de manter open source.', now() - interval '20 days', now() - interval '14 days'
     )
-  ON CONFLICT (id) DO UPDATE SET
-    answers = excluded.answers, status = excluded.status, reviewer_id = excluded.reviewer_id,
-    decision_note = excluded.decision_note, decided_at = excluded.decided_at;
+  ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO project_invitations (
     id, project_id, position_id, account_id, invited_by, functional_role, status, expires_at, responded_at
@@ -592,9 +616,7 @@ BEGIN
      '10000000-0000-4000-8000-000000000017'::uuid, v_lab_master_id, 'Go contributor', 'PENDING', now() + interval '10 days', null),
     ('54000000-0000-4000-8000-000000000006'::uuid, v_project_ids[5], null,
      '10000000-0000-4000-8000-000000000018'::uuid, v_lab_master_id, 'QA contributor', 'REVOKED', now() - interval '5 days', now() - interval '6 days')
-  ON CONFLICT (id) DO UPDATE SET
-    status = excluded.status, expires_at = excluded.expires_at, responded_at = excluded.responded_at,
-    functional_role = excluded.functional_role;
+  ON CONFLICT (id) DO NOTHING;
 
   FOREACH v_project_id IN ARRAY v_project_ids LOOP
     FOR v_i IN 1..5 LOOP
