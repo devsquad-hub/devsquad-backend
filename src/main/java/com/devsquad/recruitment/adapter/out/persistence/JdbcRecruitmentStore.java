@@ -11,6 +11,8 @@ import com.devsquad.shared.persistence.JdbcClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -120,19 +122,22 @@ public class JdbcRecruitmentStore implements RecruitmentStore {
 
   @Override
   public List<PositionView> publicPositions(UUID projectId) {
-    return jdbc.sql(
+    var positions =
+        jdbc.sql(
             """
             select rp.id, rp.title, rp.description, rp.skills, rp.capacity, rp.filled,
                    rr.id as round_id, rr.name as round_name, rr.closes_at
             from recruitment_positions rp join recruitment_rounds rr on rr.id = rp.round_id
-            where rr.project_id = :projectId and rr.status = 'OPEN' and rp.status = 'OPEN'
+            join projects p on p.id = rr.project_id
+            where rr.project_id = :projectId and p.status <> 'ARCHIVED'
+              and rr.status = 'OPEN' and rp.status = 'OPEN'
               and (rr.opens_at is null or rr.opens_at <= now())
               and (rr.closes_at is null or rr.closes_at > now()) order by rr.created_at, rp.created_at
             """)
         .param("projectId", projectId)
         .query(
             (rs, row) ->
-                new PositionView(
+                new PositionRow(
                     rs.getObject("id", UUID.class),
                     rs.getObject("round_id", UUID.class),
                     rs.getString("round_name"),
@@ -141,32 +146,77 @@ public class JdbcRecruitmentStore implements RecruitmentStore {
                     List.of((String[]) rs.getArray("skills").getArray()),
                     rs.getInt("capacity"),
                     rs.getInt("filled"),
-                    rs.getObject("closes_at", OffsetDateTime.class),
-                    questions(rs.getObject("id", UUID.class))))
+                    rs.getObject("closes_at", OffsetDateTime.class)))
         .list();
-  }
+    if (positions.isEmpty()) return List.of();
 
-  private List<QuestionView> questions(UUID positionId) {
-    return jdbc.sql(
+    var questionQuery =
+        new StringBuilder(
             """
-            select question_key, label, type, required, options::text
-            from recruitment_questions
-            where form_version_id = (
-                select id from recruitment_form_versions
-                where position_id = :position order by version desc limit 1
-            ) order by position
-            """)
-        .param("position", positionId)
+            select fv.position_id, rq.question_key, rq.label, rq.type, rq.required, rq.options::text
+            from recruitment_form_versions fv
+            join recruitment_questions rq on rq.form_version_id = fv.id
+            where fv.version = (select max(latest.version) from recruitment_form_versions latest
+                                where latest.position_id = fv.position_id)
+              and fv.position_id in (
+            """);
+    for (var index = 0; index < positions.size(); index++) {
+      if (index > 0) questionQuery.append(", ");
+      questionQuery.append(":position").append(index);
+    }
+    questionQuery.append(") order by fv.position_id, rq.position");
+    var questionStatement = jdbc.sql(questionQuery.toString());
+    for (var index = 0; index < positions.size(); index++) {
+      questionStatement.param("position" + index, positions.get(index).id());
+    }
+    var questionsByPosition = new LinkedHashMap<UUID, List<QuestionView>>();
+    questionStatement
         .query(
             (rs, row) ->
-                new QuestionView(
-                    rs.getString("question_key"),
-                    rs.getString("label"),
-                    rs.getString("type"),
-                    rs.getBoolean("required"),
-                    jsonArray(rs.getString("options"))))
-        .list();
+                new QuestionRow(
+                    rs.getObject("position_id", UUID.class),
+                    new QuestionView(
+                        rs.getString("question_key"),
+                        rs.getString("label"),
+                        rs.getString("type"),
+                        rs.getBoolean("required"),
+                        jsonArray(rs.getString("options")))))
+        .list()
+        .forEach(
+            row ->
+                questionsByPosition
+                    .computeIfAbsent(row.positionId(), ignored -> new ArrayList<>())
+                    .add(row.question()));
+
+    return positions.stream()
+        .map(
+            position ->
+                new PositionView(
+                    position.id(),
+                    position.roundId(),
+                    position.roundName(),
+                    position.title(),
+                    position.description(),
+                    position.skills(),
+                    position.capacity(),
+                    position.filled(),
+                    position.closesAt(),
+                    List.copyOf(questionsByPosition.getOrDefault(position.id(), List.of()))))
+        .toList();
   }
+
+  private record PositionRow(
+      UUID id,
+      UUID roundId,
+      String roundName,
+      String title,
+      String description,
+      List<String> skills,
+      int capacity,
+      int filled,
+      OffsetDateTime closesAt) {}
+
+  private record QuestionRow(UUID positionId, QuestionView question) {}
 
   @Override
   public PositionContext positionContext(UUID positionId) {
@@ -175,6 +225,7 @@ public class JdbcRecruitmentStore implements RecruitmentStore {
             select rr.project_id, p.hub_id from recruitment_positions rp
             join recruitment_rounds rr on rr.id = rp.round_id join projects p on p.id = rr.project_id
             where rp.id = :id and rp.status = 'OPEN' and rr.status = 'OPEN'
+              and p.status <> 'ARCHIVED'
               and (rr.opens_at is null or rr.opens_at <= now())
               and (rr.closes_at is null or rr.closes_at > now())
             """)

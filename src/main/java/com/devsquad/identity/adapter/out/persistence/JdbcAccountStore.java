@@ -80,6 +80,16 @@ public class JdbcAccountStore implements AccountStore {
     jdbc.sql("update accounts set status = 'DELETED', updated_at = now() where clerk_user_id = :id")
         .param("id", clerkUserId)
         .update();
+    jdbc.sql(
+            "update hub_memberships set status = 'LEFT', updated_at = now()"
+                + " where account_id = (select id from accounts where clerk_user_id = :id)")
+        .param("id", clerkUserId)
+        .update();
+    jdbc.sql(
+            "update project_memberships set status = 'INACTIVE', updated_at = now()"
+                + " where account_id = (select id from accounts where clerk_user_id = :id)")
+        .param("id", clerkUserId)
+        .update();
   }
 
   private static Account map(ResultSet rs, int rowNumber) throws SQLException {

@@ -41,7 +41,7 @@ public class JdbcHubMembershipStore implements HubMembershipStore {
             """
             select a.id, a.display_name, a.email, a.avatar_url, hm.role
             from hub_memberships hm join accounts a on a.id = hm.account_id
-            where hm.hub_id = :hubId and hm.status = 'ACTIVE'
+            where hm.hub_id = :hubId and hm.status = 'ACTIVE' and a.status = 'ACTIVE'
             order by case hm.role when 'MASTER' then 0 when 'ADMIN' then 1 else 2 end, a.display_name
             """)
         .param("hubId", hubId)

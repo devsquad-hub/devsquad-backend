@@ -30,13 +30,21 @@ public class RecruitmentService {
     return recruitment.createRound(projectId, command);
   }
 
+  /** Creates a complete, open recruitment opportunity in one transaction. */
+  @Transactional
+  public SetupResult setup(
+      String clerkId, UUID projectId, RoundCommand round, PositionCommand position) {
+    authorization.requireProjectAdmin(clerkId, projectId);
+    validateQuestions(position);
+    var roundId = recruitment.createRound(projectId, round);
+    var positionId = recruitment.createPosition(roundId, position);
+    recruitment.openRound(roundId, projectId);
+    return new SetupResult(roundId, positionId);
+  }
+
   @Transactional
   public UUID createPosition(String clerkId, UUID roundId, PositionCommand command) {
-    for (var question : command.questions()) {
-      if (!QUESTION_TYPES.contains(question.type())) {
-        throw new DomainException("invalid_question_type", "Recruitment question type is invalid");
-      }
-    }
+    validateQuestions(command);
     authorization.requireProjectAdmin(clerkId, recruitment.projectForRound(roundId));
     return recruitment.createPosition(roundId, command);
   }
@@ -85,6 +93,8 @@ public class RecruitmentService {
 
   public record RoundCommand(String name, String description, Instant opensAt, Instant closesAt) {}
 
+  public record SetupResult(UUID roundId, UUID positionId) {}
+
   public record PositionCommand(
       String title,
       String description,
@@ -124,4 +134,12 @@ public class RecruitmentService {
       String answersJson,
       String status,
       OffsetDateTime submittedAt) {}
+
+  private static void validateQuestions(PositionCommand command) {
+    for (var question : command.questions()) {
+      if (!QUESTION_TYPES.contains(question.type())) {
+        throw new DomainException("invalid_question_type", "Recruitment question type is invalid");
+      }
+    }
+  }
 }

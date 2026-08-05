@@ -34,7 +34,7 @@ public class JdbcProjectStore implements ProjectStore {
   public Optional<ProjectView> find(UUID projectId) {
     return jdbc.sql(SELECT + " where p.id = :id" + GROUP)
         .param("id", projectId)
-        .query((rs, row) -> map(rs))
+        .query((rs, row) -> map(rs, true))
         .optional();
   }
 
@@ -46,7 +46,7 @@ public class JdbcProjectStore implements ProjectStore {
                 + GROUP
                 + "order by p.created_at desc")
         .param("hubId", hubId)
-        .query((rs, row) -> map(rs))
+        .query((rs, row) -> map(rs, false))
         .list();
   }
 
@@ -55,11 +55,11 @@ public class JdbcProjectStore implements ProjectStore {
     return jdbc.sql(
             SELECT
                 + " join hubs h on h.id = p.hub_id where h.slug = :hubSlug and p.slug ="
-                + " :projectSlug"
+                + " :projectSlug and p.status <> 'ARCHIVED'"
                 + GROUP)
         .param("hubSlug", hubSlug)
         .param("projectSlug", projectSlug)
-        .query((rs, row) -> map(rs))
+        .query((rs, row) -> map(rs, true))
         .optional();
   }
 
@@ -129,7 +129,7 @@ public class JdbcProjectStore implements ProjectStore {
         > 0;
   }
 
-  private ProjectView map(ResultSet rs) throws SQLException {
+  private ProjectView map(ResultSet rs, boolean includeMembers) throws SQLException {
     var array = rs.getArray("tags");
     var tags = array == null ? List.<String>of() : Arrays.asList((String[]) array.getArray());
     var id = rs.getObject("id", UUID.class);
@@ -147,7 +147,7 @@ public class JdbcProjectStore implements ProjectStore {
         List.copyOf(tags),
         rs.getLong("total_tasks"),
         rs.getLong("completed_tasks"),
-        members(id));
+        includeMembers ? members(id) : List.of());
   }
 
   private List<MemberView> members(UUID projectId) {
@@ -155,7 +155,8 @@ public class JdbcProjectStore implements ProjectStore {
             """
             select a.id, a.display_name, a.avatar_url, pm.role, pm.functional_role
             from project_memberships pm join accounts a on a.id = pm.account_id
-            where pm.project_id = :projectId and pm.status = 'ACTIVE' order by pm.role, a.display_name
+            where pm.project_id = :projectId and pm.status = 'ACTIVE' and a.status = 'ACTIVE'
+            order by pm.role, a.display_name
             """)
         .param("projectId", projectId)
         .query(

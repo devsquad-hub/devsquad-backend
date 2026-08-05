@@ -31,6 +31,27 @@ public class RecruitmentController {
   }
 
   @POST
+  @Path("/projects/{projectId}/recruitment")
+  public Response setup(
+      @Context SecurityContext securityContext,
+      @PathParam("projectId") UUID projectId,
+      @Valid SetupRequest request) {
+    var result =
+        service.setup(
+            subject(securityContext),
+            projectId,
+            new RecruitmentService.RoundCommand(
+                request.round().name(),
+                request.round().description(),
+                request.round().opensAt(),
+                request.round().closesAt()),
+            toPositionCommand(request.position()));
+    return Response.created(URI.create("/api/v1/recruitment-positions/" + result.positionId()))
+        .entity(new SetupResponse(result.roundId(), result.positionId()))
+        .build();
+  }
+
+  @POST
   @Path("/projects/{projectId}/recruitment-rounds")
   public Response createRound(
       @Context SecurityContext securityContext,
@@ -53,29 +74,11 @@ public class RecruitmentController {
       @Context SecurityContext securityContext,
       @PathParam("roundId") UUID roundId,
       @Valid PositionRequest request) {
-    var questions =
-        request.questions() == null
-            ? List.<RecruitmentService.Question>of()
-            : request.questions().stream()
-                .map(
-                    question ->
-                        new RecruitmentService.Question(
-                            question.key(),
-                            question.label(),
-                            question.type(),
-                            question.required(),
-                            question.options()))
-                .toList();
     var id =
         service.createPosition(
             subject(securityContext),
             roundId,
-            new RecruitmentService.PositionCommand(
-                request.title(),
-                request.description(),
-                request.skills(),
-                request.capacity(),
-                questions));
+            toPositionCommand(request));
     return Response.created(URI.create("/api/v1/recruitment-positions/" + id))
         .entity(new IdResponse(id))
         .build();
@@ -177,6 +180,8 @@ public class RecruitmentController {
       @Min(1) int capacity,
       @Size(max = 30) List<@Valid QuestionRequest> questions) {}
 
+  public record SetupRequest(@NotNull @Valid RoundRequest round, @NotNull @Valid PositionRequest position) {}
+
   public record QuestionRequest(
       @NotBlank @Size(max = 64) String key,
       @NotBlank @Size(max = 500) String label,
@@ -190,4 +195,24 @@ public class RecruitmentController {
       @NotNull UUID accountId, UUID positionId, @Size(max = 120) String functionalRole) {}
 
   public record IdResponse(UUID id) {}
+
+  public record SetupResponse(UUID roundId, UUID positionId) {}
+
+  private static RecruitmentService.PositionCommand toPositionCommand(PositionRequest request) {
+    var questions =
+        request.questions() == null
+            ? List.<RecruitmentService.Question>of()
+            : request.questions().stream()
+                .map(
+                    question ->
+                        new RecruitmentService.Question(
+                            question.key(),
+                            question.label(),
+                            question.type(),
+                            question.required(),
+                            question.options()))
+                .toList();
+    return new RecruitmentService.PositionCommand(
+        request.title(), request.description(), request.skills(), request.capacity(), questions);
+  }
 }
