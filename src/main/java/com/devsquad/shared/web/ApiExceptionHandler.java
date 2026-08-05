@@ -35,6 +35,7 @@ public class ApiExceptionHandler implements ExceptionMapper<Throwable> {
         switch (code) {
           case "authentication_required" -> 401;
           case "account_not_synchronized" -> 409;
+          case "default_hub_not_found" -> 503;
           case "invalid_webhook_signature", "clerk_webhook_not_configured" -> 401;
           default -> {
             if (code.endsWith("_not_found")) yield 404;
